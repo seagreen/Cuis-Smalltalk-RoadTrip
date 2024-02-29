@@ -1,6 +1,6 @@
-'From Cuis6.2 [latest update: #6156] on 29 February 2024 at 11:56:32 am'!
+'From Cuis6.2 [latest update: #6156] on 29 February 2024 at 12:42:10 pm'!
 'Description '!
-!provides: 'RoadTrip' 1 0!
+!provides: 'RoadTrip' 1 2!
 SystemOrganization addCategory: #RoadTrip!
 
 
@@ -56,7 +56,13 @@ CityData class
 
 
 !ZoomPanMorph commentStamp: '<historical>' prior: 0!
-A rectangular Morph that can be zoomed and panned, useful for things like geographical maps.!
+A rectangular Morph that can be zoomed and panned, useful for things like geographical maps.
+
+origin is the center of the rectangle in local coordinates.
+
+width and height are the dimensions of the rectangle.
+
+panningFromLocalPosition is set on mousedown. We require a threshold of mouse movement from this position for panning to start. Each time that threshold is crossed before mouseup a pan occurs and this variable is set to a new position.!
 
 !City methodsFor: 'initialization' stamp: 'IGJ 2/27/2024 22:34:33'!
 addLabel
@@ -223,12 +229,12 @@ update: millisecondSinceLast
 handlesMouseScroll: aMouseScrollEvent 
 	^ true! !
 
-!ZoomPanMorph methodsFor: 'zoom' stamp: 'IGJ 2/29/2024 11:00:48'!
+!ZoomPanMorph methodsFor: 'zoom' stamp: 'IGJ 2/29/2024 12:33:05'!
 mouseScroll: aMouseEvent localPosition: mouseLocalPosition
 	aMouseEvent direction
 		caseOf: {
-			[ #up ] 	-> [ self zoom: 1.2 mouse: mouseLocalPosition.  self redrawNeeded ].
-			[ #down ] -> 		[ self zoom: 0.8 mouse: mouseLocalPosition. self redrawNeeded ].
+			[ #up ] -> [ self zoom: 1.2 mouse: mouseLocalPosition.  self redrawNeeded ].
+			[ #down ] -> 	[ self zoom: 0.8 mouse: mouseLocalPosition. self redrawNeeded ].
 			[ #left ] -> [ ].
 			[ #right ] -> [ ].
 		}! !
@@ -267,13 +273,12 @@ handlesMouseDown: aMouseEvent
 mouseButton1Down: aMouseEvent localPosition: mouseLocalPosition
 	panningFromLocalPosition := mouseLocalPosition! !
 
-!ZoomPanMorph methodsFor: 'pan' stamp: 'IGJ 2/29/2024 11:41:50'!
+!ZoomPanMorph methodsFor: 'pan' stamp: 'IGJ 2/29/2024 12:32:24'!
 mouseMove: aMouseEvent localPosition: mouseLocalPosition
 	| oldExternalizedOrigin |
-	"(    ( (panningFromLocalPosition x - mouseLocalPosition x) abs > 5 )
+	(    ( (panningFromLocalPosition x - mouseLocalPosition x) abs > 5 )
 	or: ( (panningFromLocalPosition y - mouseLocalPosition y) abs > 5 )
-	)"
-	(1 = 1)
+	)
 		ifTrue: [
 			oldExternalizedOrigin := self externalize: origin.
 			origin := ((origin x + panningFromLocalPosition x) - mouseLocalPosition x)
@@ -288,11 +293,11 @@ mouseMove: aMouseEvent localPosition: mouseLocalPosition
 morphLocalBounds
 	^ Rectangle center: origin extent: width@height! !
 
-!ZoomPanMorph methodsFor: 'adjustPositionInOwner' stamp: 'IGJ 2/29/2024 11:20:35'!
+!ZoomPanMorph methodsFor: 'adjustPositionInOwner' stamp: 'IGJ 2/29/2024 12:36:34'!
 adjustPositionInOwner: oldExternalizedOrigin
 	"Zooming and panning change our center point in local coordinates.
-	This would cause them to move across the screen if we didn't adjust our position within our owner
-	to take account of it."
+	This would cause the app viewport to slide across the screen
+	if we didn't adjust our position within our owner to take account of it."
 	self morphPosition: ((self morphPosition x + oldExternalizedOrigin x) - (self externalize: origin) x)
 	                           @ ((self morphPosition y + oldExternalizedOrigin y) - (self externalize: origin) y).! !
 
