@@ -1,6 +1,7 @@
-'From Cuis6.2 [latest update: #6156] on 3 March 2024 at 2:08:58 pm'!
+'From Cuis6.3 [latest update: #6253] on 6 March 2024 at 11:33:56 pm'!
 'Description '!
-!provides: 'RoadTrip' 1 3!
+!provides: 'RoadTrip' 1 4!
+!requires: 'JSON' 1 26 nil!
 SystemOrganization addCategory: #RoadTrip!
 
 
