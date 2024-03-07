@@ -1,6 +1,6 @@
-'From Cuis6.3 [latest update: #6253] on 6 March 2024 at 11:33:56 pm'!
+'From Cuis6.3 [latest update: #6253] on 6 March 2024 at 11:39:03 pm'!
 'Description '!
-!provides: 'RoadTrip' 1 4!
+!provides: 'RoadTrip' 1 5!
 !requires: 'JSON' 1 26 nil!
 SystemOrganization addCategory: #RoadTrip!
 
@@ -306,12 +306,8 @@ adjustPositionInOwner: oldExternalizedOrigin
 defaultColor
 	^ `Color white`! !
 
-!RoadTrip methodsFor: 'initialization' stamp: 'IGJ 3/3/2024 14:07:09'!
+!RoadTrip methodsFor: 'initialization' stamp: 'IGJ 3/6/2024 23:37:48'!
 initialize
-	| scaleNumber |
-	
-	scaleNumber := 100.
-
 	super initialize.
 	color := self defaultColor.
 
@@ -319,25 +315,25 @@ initialize
 		self addMorph:
 			(City new
 				name: (each at: 'city');
-				morphPosition: ((each at: 'longitude') * scaleNumber) @ ((each at: 'latitude') * scaleNumber); "note the flip, long/lat not lat/long"
+				morphPosition: (each at: 'longitude') @ (each at: 'latitude'); "note the flip, long/lat not lat/long"
 				population: (each at: 'population');
-				scale: 0.02 * scaleNumber)
+				scale: 0.02)
 	].
 
 	vehicle := Vehicle new
-		:: morphPosition: (-80 * scaleNumber) @ (40 * scaleNumber)
-		:: scale: 0.05 * scaleNumber.
+		:: morphPosition: -80 @ 40
+		:: scale: 0.05.
 	self addMorph: vehicle.
 	vehicle newDestination. "Calls subMorphs, so needs to come after addMorph: vehicle"
 
-	location := location withScale: 12 / scaleNumber.
+	location := location withScale: 12.
 
 	"US long is bounded by -130 to -60
 	US lat is bounded by 50 to 20
 	center point is long x lat y"
-	origin := (-95 * scaleNumber) @ (35 * scaleNumber).
-	width := (70 * scaleNumber).
-	height := (30 * scaleNumber).
+	origin := -95 @ 35.
+	width := 70.
+	height := 30.
 
 	self startSteppingStepTime: self stepTime! !
 
