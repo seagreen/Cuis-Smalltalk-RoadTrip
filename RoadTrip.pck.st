@@ -1,6 +1,6 @@
-'From Cuis6.3 [latest update: #6253] on 8 March 2024 at 12:00:43 pm'!
+'From Cuis6.3 [latest update: #6253] on 8 March 2024 at 1:10:35 pm'!
 'Description '!
-!provides: 'RoadTrip' 1 6!
+!provides: 'RoadTrip' 1 8!
 !requires: 'JSON' 1 26 nil!
 SystemOrganization addCategory: #RoadTrip!
 
@@ -27,7 +27,7 @@ Vehicle class
 
 !classDefinition: #ZoomPanMorph category: #RoadTrip!
 PlacedMorph subclass: #ZoomPanMorph
-	instanceVariableNames: 'origin width height panningFromLocalPosition'
+	instanceVariableNames: 'origin width height panStartPixel'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'RoadTrip'!
@@ -63,7 +63,7 @@ origin is the center of the viewport in the morph's local coordinates.
 
 width and height are the viewport dimensions.
 
-panningFromLocalPosition is set on mousedown. We require a threshold of mouse movement from this position for panning to start. Each time that threshold is crossed before mouseup a pan occurs and this variable is set to a new position.
+panStartPixel is set on mousedown. We require a threshold of mouse movement from this position for panning to begin. Each time that threshold is crossed before mouseup a pan occurs and this variable is set to a new position.
 
 Doesn't clip submorphs.
 
@@ -244,8 +244,8 @@ mouseScroll: aMouseEvent localPosition: mouseLocalPosition
 			[ #right ] -> [ ].
 		}! !
 
-!ZoomPanMorph methodsFor: 'zoom' stamp: 'jmv 3/1/2024 15:23:04'!
-zoom: amount mouse: latLongUnderMouse
+!ZoomPanMorph methodsFor: 'zoom' stamp: 'IGJ 3/8/2024 12:22:51'!
+zoom: amount mouse: mouseLocalPosition
 
 	"For instance, zoom in might be:
 	
@@ -259,9 +259,9 @@ zoom: amount mouse: latLongUnderMouse
 	pixelForOrigin := location externalizePosition: origin.
 	width := width / amount.
 	height := height / amount.
-	pixelUnderMouse := location externalizePosition: latLongUnderMouse.
+	pixelUnderMouse := location externalizePosition: mouseLocalPosition.
 	self scaleBy: amount.
-	delta := pixelUnderMouse - (location externalizePosition: latLongUnderMouse).
+	delta := pixelUnderMouse - (location externalizePosition: mouseLocalPosition).
 	location := location translatedBy: delta.
 	origin := location internalizePosition: pixelForOrigin.
 	self submorphsDo: [ :each |
@@ -272,37 +272,46 @@ zoom: amount mouse: latLongUnderMouse
 handlesMouseDown: aMouseEvent
 	^ true! !
 
-!ZoomPanMorph methodsFor: 'pan' stamp: 'IGJ 2/29/2024 10:59:58'!
+!ZoomPanMorph methodsFor: 'pan' stamp: 'IGJ 3/8/2024 12:49:23'!
 mouseButton1Down: aMouseEvent localPosition: mouseLocalPosition
-	panningFromLocalPosition := mouseLocalPosition! !
+	panStartPixel := location externalizePosition: mouseLocalPosition! !
 
-!ZoomPanMorph methodsFor: 'pan' stamp: 'IGJ 2/29/2024 12:32:24'!
+!ZoomPanMorph methodsFor: 'pan' stamp: 'IGJ 3/8/2024 13:08:31'!
 mouseMove: aMouseEvent localPosition: mouseLocalPosition
-	| oldExternalizedOrigin |
-	(    ( (panningFromLocalPosition x - mouseLocalPosition x) abs > 5 )
-	or: ( (panningFromLocalPosition y - mouseLocalPosition y) abs > 5 )
-	)
+	| pixelForOrigin pixelUnderMouse delta |
+	
+	"Let's walk through an example run.
+	
+	# Background
+	
+	We're looking at the map of the US.
+	The origin is at Oklahoma City.
+	Also, we've already mouse-downed over Oklahoma City,
+		so panStartPixel is set to its equivalent coordinate.
+
+	# Execution
+
+	Now we move the mouse to the right, which calls this method.
+	We set a new origin to the left of Oklahoma city.
+	This would move the whole viewport to the left on the screen.
+	To prevent that we move the morph to the right."
+
+	pixelForOrigin := location externalizePosition: origin.
+	pixelUnderMouse := location externalizePosition: mouseLocalPosition.
+	delta := (panStartPixel - pixelUnderMouse) negated.
+
+	( (delta x abs > (width / 10)) or: (delta y abs > (width / 10)))
 		ifTrue: [
-			oldExternalizedOrigin := self externalize: origin.
-			origin := ((origin x + panningFromLocalPosition x) - mouseLocalPosition x)
-			           @ ((origin y + panningFromLocalPosition y) - mouseLocalPosition y).
-			panningFromLocalPosition := mouseLocalPosition.
-			self adjustPositionInOwner: oldExternalizedOrigin
+			origin := location internalizePosition: (pixelForOrigin - delta).
+
+			location := location translatedBy: delta.
+			panStartPixel := pixelUnderMouse.	
 	]
-		ifFalse: [ ]
 ! !
 
 !ZoomPanMorph methodsFor: 'geometry' stamp: 'IGJ 2/29/2024 09:20:35'!
 morphLocalBounds
 	^ Rectangle center: origin extent: width@height! !
-
-!ZoomPanMorph methodsFor: 'adjustPositionInOwner' stamp: 'IGJ 2/29/2024 12:36:34'!
-adjustPositionInOwner: oldExternalizedOrigin
-	"Zooming and panning change our center point in local coordinates.
-	This would cause the app viewport to slide across the screen
-	if we didn't adjust our position within our owner to take account of it."
-	self morphPosition: ((self morphPosition x + oldExternalizedOrigin x) - (self externalize: origin) x)
-	                           @ ((self morphPosition y + oldExternalizedOrigin y) - (self externalize: origin) y).! !
 
 !RoadTrip methodsFor: 'initialization' stamp: 'IGJ 2/22/2024 22:02:05'!
 defaultColor
