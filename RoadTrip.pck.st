@@ -1,6 +1,6 @@
-'From Cuis6.3 [latest update: #6253] on 6 March 2024 at 11:39:03 pm'!
+'From Cuis6.3 [latest update: #6253] on 8 March 2024 at 12:00:43 pm'!
 'Description '!
-!provides: 'RoadTrip' 1 5!
+!provides: 'RoadTrip' 1 6!
 !requires: 'JSON' 1 26 nil!
 SystemOrganization addCategory: #RoadTrip!
 
@@ -57,13 +57,17 @@ CityData class
 
 
 !ZoomPanMorph commentStamp: '<historical>' prior: 0!
-A rectangular Morph that can be zoomed and panned, useful for things like geographical maps.
+A morph that shows a subset of itself with a zoomable and pannable rectangular viewport. Useful for things like geographical maps.
 
-origin is the center of the rectangle in local coordinates.
+origin is the center of the viewport in the morph's local coordinates.
 
-width and height are the dimensions of the rectangle.
+width and height are the viewport dimensions.
 
-panningFromLocalPosition is set on mousedown. We require a threshold of mouse movement from this position for panning to start. Each time that threshold is crossed before mouseup a pan occurs and this variable is set to a new position.!
+panningFromLocalPosition is set on mousedown. We require a threshold of mouse movement from this position for panning to start. Each time that threshold is crossed before mouseup a pan occurs and this variable is set to a new position.
+
+Doesn't clip submorphs.
+
+Implementation note: if you do want to clip submorphs then you could write an alternate version of this using composition instead of inheritance. See PluggableScrollPane for inspiration (pointed out by Juan Vuletich).!
 
 !City methodsFor: 'initialization' stamp: 'IGJ 2/27/2024 22:34:33'!
 addLabel
@@ -240,9 +244,8 @@ mouseScroll: aMouseEvent localPosition: mouseLocalPosition
 			[ #right ] -> [ ].
 		}! !
 
-!ZoomPanMorph methodsFor: 'zoom' stamp: 'IGJ 2/29/2024 11:39:30'!
-zoom: amount mouse: mouseLocalPosition
-	| oldExternalizedOrigin |
+!ZoomPanMorph methodsFor: 'zoom' stamp: 'jmv 3/1/2024 15:23:04'!
+zoom: amount mouse: latLongUnderMouse
 
 	"For instance, zoom in might be:
 	
@@ -252,16 +255,15 @@ zoom: amount mouse: mouseLocalPosition
 	
 		zoom: 0.9"
 
+	| pixelUnderMouse pixelForOrigin delta |
+	pixelForOrigin := location externalizePosition: origin.
 	width := width / amount.
 	height := height / amount.
-	oldExternalizedOrigin := self externalize: origin.
+	pixelUnderMouse := location externalizePosition: latLongUnderMouse.
 	self scaleBy: amount.
-	
-	( amount > 1 )
-		ifTrue: [ origin := origin interpolateTo: mouseLocalPosition at: 0.2 ]
-		ifFalse: [ ]	.
-	
-	self adjustPositionInOwner: oldExternalizedOrigin.
+	delta := pixelUnderMouse - (location externalizePosition: latLongUnderMouse).
+	location := location translatedBy: delta.
+	origin := location internalizePosition: pixelForOrigin.
 	self submorphsDo: [ :each |
 		each scaleBy: 1 / amount
 	].! !
