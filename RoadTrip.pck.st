@@ -1,6 +1,6 @@
-'From Cuis6.3 [latest update: #6253] on 9 March 2024 at 2:51:01 pm'!
+'From Cuis6.3 [latest update: #6253] on 28 March 2024 at 6:00:33 pm'!
 'Description '!
-!provides: 'RoadTrip' 1 9!
+!provides: 'RoadTrip' 1 10!
 !requires: 'JSON' 1 26 nil!
 SystemOrganization addCategory: #RoadTrip!
 
@@ -322,6 +322,13 @@ mouseMove: aMouseEvent localPosition: mouseLocalPosition
 !ZoomPanMorph methodsFor: 'geometry' stamp: 'IGJ 2/29/2024 09:20:35'!
 morphLocalBounds
 	^ Rectangle center: origin extent: width@height! !
+
+!ZoomPanMorph methodsFor: 'initialization' stamp: 'IGJ 3/28/2024 17:53:32'!
+initialize
+	super initialize.
+	origin := 0 @ 0.
+	width := 100.
+	height := 100.! !
 
 !RoadTrip methodsFor: 'initialization' stamp: 'IGJ 2/22/2024 22:02:05'!
 defaultColor
